@@ -196,38 +196,9 @@ const sendDoctorNotification = async (
     throw error; // Error ko aage pass karein
   }
 };
-/**
- * Sends feedback/support notification to Admin
- */
-const sendFeedbackNotification = async ({ issueType, message, contact, timestamp }) => {
-
-  const msg = {
-    to: "admin@steer-u.com", // 👈 change if needed
-    from: SENDER_EMAIL,
-    subject: "New Support Feedback Received",
-    html: `
-      <div style="font-family: Arial, sans-serif;">
-        <h2>New Feedback Received</h2>
-
-        <p><strong>Issue Type:</strong> ${issueType}</p>
-        <p><strong>Message:</strong> ${message}</p>
-        <p><strong>Contact:</strong> ${contact}</p>
-        <p><strong>Time:</strong> ${new Date(timestamp).toLocaleString()}</p>
-
-        <hr/>
-        <p>Steer-U Support System</p>
-      </div>
-    `
-  };
-
-  await sgMail.send(msg);
-  console.log("Support feedback email sent to admin.");
-};
-
 
 module.exports = {
   sendPatientConfirmation,
   sendDoctorNotification,
-  sendFeedbackNotification
 };
 

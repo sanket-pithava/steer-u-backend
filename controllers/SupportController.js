@@ -1,5 +1,4 @@
 const { db } = require('../firebaseAdmin');
-const { sendFeedbackNotification } = require('../services/emailService');
 
 const submitFeedback = async (req, res) => {
     const { issueType, message, timestamp, contact } = req.body;
@@ -12,24 +11,13 @@ const submitFeedback = async (req, res) => {
     }
 
     try {
-        const feedbackData = {
+        await db.collection('feedback').add({
             issueType,
             message,
-            contact,
+            contact,  
             timestamp: new Date(timestamp || Date.now()),
             status: 'NEW',
-        };
-
-        // Save to Firestore
-        await db.collection('feedback').add(feedbackData);
-
-        // Send Email Notification to Admin (don't await so user doesn't wait for email)
-        sendFeedbackNotification({
-            issueType,
-            message,
-            contact,
-            timestamp: feedbackData.timestamp
-        }).catch(err => console.error("Background email error:", err));
+        });
 
         return res.status(200).json({
             success: true,

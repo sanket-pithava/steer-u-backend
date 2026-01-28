@@ -4,7 +4,7 @@ const GoogleStrategy = require("passport-google-oauth20").Strategy;
 console.log('[PASSPORT CONFIG] Loading Google OAuth Strategy...');
 console.log('[PASSPORT CONFIG] GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'SET' : 'NOT SET');
 console.log('[PASSPORT CONFIG] GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'SET' : 'NOT SET');
-console.log("🔥 GOOGLE CALLBACK USED BY PASSPORT:", process.env.GOOGLE_CALLBACK_URL);
+console.log('[PASSPORT CONFIG] GOOGLE_CALLBACK_URL:', process.env.GOOGLE_CALLBACK_URL);
 
 if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     console.error('[PASSPORT CONFIG] ERROR: Google OAuth credentials not found in environment!');
