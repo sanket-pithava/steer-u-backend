@@ -1,0 +1,90 @@
+const axios = require('axios');
+const { db } = require('../firebaseAdmin'); // Import the Firestore database instance
+
+const getSingleCompatibilityAnswer = async (req, res) => {
+    const { selfData, otherData, questionText } = req.body;
+    const userId = req.user.uid;
+    if (
+        !selfData || !otherData || !questionText ||
+        !selfData.dateOfBirth || !selfData.timeOfBirth || !selfData.placeOfBirth || !selfData.gender || // Gender validation added
+        !otherData.dateOfBirth || !otherData.timeOfBirth || !otherData.placeOfBirth || !otherData.gender // Gender validation added
+    ) {
+        return res.status(400).json({ message: "All birth details (DOB, TOB, POB, Gender) for both persons, and a question are required." });
+    }
+
+    try {
+        const steeruApiKey = process.env.SECRET_STEERU_API_KEY;
+        const steeruApiEndpoint = process.env.STEERU_API_ENDPOINT_EXTENDED;
+
+        if (!steeruApiKey || !steeruApiEndpoint) {
+            console.error("Compatibility engine is not configured in .env.");
+            return res.status(500).json({ message: "Compatibility engine is not configured in .env." });
+        }
+
+        // --- FIX 2: CONSTRUCTING THE API PAYLOAD ---
+        const requestData = {
+            birth_details_array: [
+                {
+                    date: selfData.dateOfBirth,
+                    time: selfData.timeOfBirth,
+                    place: selfData.placeOfBirth,
+                    gender: selfData.gender // Use actual gender from frontend
+                },
+                {
+                    date: otherData.dateOfBirth,
+                    time: otherData.timeOfBirth,
+                    place: otherData.placeOfBirth,
+                    gender: otherData.gender // Use actual gender from frontend
+                }
+            ],
+            questions: [questionText],
+            skip_llm: false,
+            llm_prompt: "You are an expert Vedic astrologer specializing in compatibility.",
+            llm_model: "gpt-4"
+        };
+
+        // Sending request to the external API
+        const responseFromEngine = await axios.post(
+            steeruApiEndpoint,
+            requestData,
+            {
+                headers: {
+                    'Authorization': `Bearer ${steeruApiKey}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        const answer = responseFromEngine.data.analysis.answers[0]; // Get the first answer
+        if (!answer) {
+            throw new Error("Invalid response from engine: 'answers' array is empty.");
+        }
+
+        // Save the prediction to Firestore
+        await db.collection('predictions').add({
+            userId: userId,
+            question: questionText,
+            answer: answer,
+            details: { selfData, otherData },
+            savedAt: new Date()
+        });
+
+        res.status(200).json({ success: true, answer: answer });
+
+    } catch (error) {
+        console.error("Error getting compatibility:");
+        if (error.response) {
+            // Error from external engine
+            console.error("Error details from engine:", error.response.data);
+            res.status(500).json({ message: `Failed to get compatibility report: ${error.response.data.detail || 'External engine error'}` });
+        } else {
+            // Internal server/network error
+            console.error(error.message);
+            res.status(500).json({ message: "Failed to get compatibility report." });
+        }
+    }
+};
+
+module.exports = {
+    getSingleCompatibilityAnswer,
+};
