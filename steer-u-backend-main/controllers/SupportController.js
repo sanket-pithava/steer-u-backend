@@ -13,16 +13,16 @@ const submitFeedback = async (req, res) => {
     }
 
     try {
-        // 1️⃣ Save feedback to Firebase
+        // Save to Firestore
         await db.collection('feedback').add({
             issueType,
             message,
-            contact,  
+            contact,
             timestamp: new Date(timestamp || Date.now()),
             status: 'NEW',
         });
 
-        // 2️⃣ Send feedback email to admin
+        // 📧 Send email using emailService
         await sendFeedbackEmail({ issueType, message, contact, timestamp });
 
         return res.status(200).json({
@@ -38,6 +38,4 @@ const submitFeedback = async (req, res) => {
     }
 };
 
-module.exports = {
-    submitFeedback
-};
+module.exports = { submitFeedback };
