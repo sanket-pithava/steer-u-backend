@@ -1,13 +1,36 @@
 // services/emailService.js
-const sgMail = require('@sendgrid/mail');
-
-// 1. SendGrid API Key ko set karein
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
-const SENDER_EMAIL = process.env.EMAIL_USER;
+const nodemailer = require("nodemailer");
 
 /**
- * Sends a confirmation email to the patient.
+ * ENV REQUIRED
+ * EMAIL_USER = yourgmail@gmail.com
+ * EMAIL_PASS = 16 digit Gmail App Password (no spaces)
+ */
+
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // STARTTLS
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false, // IMPORTANT for VPS / Render
+  },
+});
+
+// verify transporter on startup
+transporter.verify((err, success) => {
+  if (err) {
+    console.error("❌ SMTP Verify Failed:", err);
+  } else {
+    console.log("✅ SMTP Server is ready to send emails");
+  }
+});
+
+/**
+ * Send booking confirmation email to patient
  */
 const sendPatientConfirmation = async (
   patientEmail,
@@ -16,210 +39,94 @@ const sendPatientConfirmation = async (
 ) => {
   const { pseudoName, doctor, date, slot } = bookingDetails;
 
-  const msg = {
-  to: patientEmail, // Patient email
-  from: SENDER_EMAIL, // Verified sender email (from EMAIL_USER)
-  subject: `Booking Confirmed: ${doctor} on ${date}`,
-  html: `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6; background-color: #f9f9f9; padding: 20px;">
-      <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; padding: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-        
-        <h2 style="color: #f76822; text-align: center;">Booking Confirmed!</h2>
-        <p>Hi <strong>${pseudoName}</strong>,</p>
-        <p>Your therapy session booking with <strong>${doctor}</strong> is confirmed.</p>
+  await transporter.sendMail({
+    from: `"Steer-U" <${process.env.EMAIL_USER}>`,
+    to: patientEmail,
+    subject: `Booking Confirmed: ${doctor} on ${date}`,
+    html: `
+      <h2>Booking Confirmed</h2>
+      <p>Hi <b>${pseudoName}</b>,</p>
+      <p>Your therapy session with <b>${doctor}</b> is confirmed.</p>
 
-        <h3 style="color: #6b2400;">Session Details:</h3>
-        <ul style="list-style: none; padding-left: 0;">
-          <li><strong>Doctor:</strong> ${doctor}</li>
-          <li><strong>Date:</strong> ${date}</li>
-          <li><strong>Time:</strong> ${slot}</li>
-        </ul>
+      <p><b>Date:</b> ${date}</p>
+      <p><b>Time:</b> ${slot}</p>
 
-        <h3 style="color: #6b2400;">Google Meet Link:</h3>
-        <p>To join the session, please click the link below:</p>
-        <a 
-          href="${hangoutLink}" 
-          style="display:inline-block; background-color: #f76822; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;"
-        >
-          Join Google Meet
-        </a>
+      <p><b>Google Meet Link:</b></p>
+      <a href="${hangoutLink}">${hangoutLink}</a>
 
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
+      <br/><br/>
+      <p>🌐 <a href="https://steer-u.com">steer-u.com</a></p>
+      <p><b>Steer Your Happiness!</b></p>
+    `,
+  });
 
-        <div style="text-align: center;">
-          <p style="color: #333; font-size: 14px; margin-bottom: 8px;">
-            🌐 <a href="https://steer-u.com/" target="_blank" style="color: #f76822; text-decoration: none;">steer-u.com</a> helps you get
-            <strong>Future Predictions</strong> (2 free questions) & online 
-            <strong>Psychological Counselling</strong> services (free tips & paid online sessions) 
-            — with <strong>confidentiality guaranteed</strong>.
-          </p>
-
-          <p style="font-size: 15px; font-weight: bold; color: #6b2400; margin-top: 15px;">
-            You can write the next episode of your life!<br/>
-            <span style="color: #f76822;">Steer Your Happiness!</span>
-          </p>
-
-          <div style="margin-top: 20px;">
-            <p style="font-size: 13px; color: #555;">Connect with us:</p>
-
-            <!-- Facebook -->
-            <a href="https://www.facebook.com/steeruofficial" style="margin: 0 6px;">
-              <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAv0lEQVR42mNgGAU0A9S/w8DgPwMKzQxAcRX+YpD0zAwDA6L///+HyK7BMDIAHhwQHwPSUG4sKsoMyAjgcAQYoJBBkpF2iKqYmJhMzAw5v9/f/9AyMAAAXyIRMT8oJAVxHwNQAAAwPsDqEY5ITyE2gIx8gAEqULUoZAGFBYqzK4wXDEAwMdQNvCIFAoA0oJD8YCE+YDQwkA8ACDd3Sz6CgmNgAAAABJRU5ErkJggg==" width="24" height="24" alt="Facebook" />
-            </a>
-
-            <!-- Instagram -->
-            <a href="https://www.instagram.com/steeruofficial" style="margin: 0 6px;">
-              <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAv0lEQVR42mNgGAU0A9S/w8DgPwMKzQxAcRX+YpD0zAwDA6L///+HyK7BMDIAHhwQHwPSUG4sKsoMyAjgcAQYoJBBkpF2iKqYmJhMzAw5v9/f/9AyMAAAXyIRMT8oJAVxHwNQAAAwPsDqEY5ITyE2gIx8gAEqULUoZAGFBYqzK4wXDEAwMdQNvCIFAoA0oJD8YCE+YDQwkA8ACDd3Sz6CgmNgAAAABJRU5ErkJggg==" width="24" height="24" alt="Instagram" />
-            </a>
-
-            <!-- LinkedIn -->
-            <a href="https://www.linkedin.com/company/steeruofficial" style="margin: 0 6px;">
-              <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAv0lEQVR42mNgGAU0A9S/w8DgPwMKzQxAcRX+YpD0zAwDA6L///+HyK7BMDIAHhwQHwPSUG4sKsoMyAjgcAQYoJBBkpF2iKqYmJhMzAw5v9/f/9AyMAAAXyIRMT8oJAVxHwNQAAAwPsDqEY5ITyE2gIx8gAEqULUoZAGFBYqzK4wXDEAwMdQNvCIFAoA0oJD8YCE+YDQwkA8ACDd3Sz6CgmNgAAAABJRU5ErkJggg==" width="24" height="24" alt="LinkedIn" />
-            </a>
-
-            <!-- Twitter -->
-            <a href="https://x.com/steeruofficial" style="margin: 0 6px;">
-              <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAv0lEQVR42mNgGAU0A9S/w8DgPwMKzQxAcRX+YpD0zAwDA6L///+HyK7BMDIAHhwQHwPSUG4sKsoMyAjgcAQYoJBBkpF2iKqYmJhMzAw5v9/f/9AyMAAAXyIRMT8oJAVxHwNQAAAwPsDqEY5ITyE2gIx8gAEqULUoZAGFBYqzK4wXDEAwMdQNvCIFAoA0oJD8YCE+YDQwkA8ACDd3Sz6CgmNgAAAABJRU5ErkJggg==" width="24" height="24" alt="Twitter" />
-            </a>
-          </div>
-
-          <p style="margin-top: 15px; font-size: 13px; color: #777;">
-            📧 <a href="mailto:admin@steer-u.com" style="color: #f76822; text-decoration: none;">admin@steer-u.com</a>
-          </p>
-        </div>
-      </div>
-    </div>
-  `,
-  };
-
-  try {
-    await sgMail.send(msg);
-    console.log(`Patient confirmation email sent to: ${patientEmail}`);
-  } catch (error) {
-    console.error(`Error sending email to ${patientEmail}:`, error);
-    if (error.response) {
-      console.error(error.response.body); // SendGrid se mila specific error
-    }
-    throw error; // Error ko aage pass karein
-  }
+  console.log(`✅ Patient email sent → ${patientEmail}`);
 };
 
 /**
- * Sends a notification email to the doctor.
+ * Send booking notification email to doctor
  */
 const sendDoctorNotification = async (
   doctorEmail,
   hangoutLink,
   bookingDetails
 ) => {
-  const { pseudoName, doctor, date, slot, patientEmail, mobile } = bookingDetails;
+  const { pseudoName, doctor, date, slot, patientEmail, mobile } =
+    bookingDetails;
 
-  const msg = {
-  to: patientEmail, // Patient email
-  from: SENDER_EMAIL, // Verified sender email (from EMAIL_USER)
-  subject: `Booking Confirmed: ${doctor} on ${date}`,
-  html: `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6; background-color: #f9f9f9; padding: 20px;">
-      <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; padding: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-        
-        <h2 style="color: #f76822; text-align: center;">Booking Confirmed!</h2>
-        <p>Hi <strong>${pseudoName}</strong>,</p>
-        <p>Your therapy session booking with <strong>${doctor}</strong> is confirmed.</p>
-
-        <h3 style="color: #6b2400;">Session Details:</h3>
-        <ul style="list-style: none; padding-left: 0;">
-          <li><strong>Doctor:</strong> ${doctor}</li>
-          <li><strong>Date:</strong> ${date}</li>
-          <li><strong>Time:</strong> ${slot}</li>
-        </ul>
-
-        <h3 style="color: #6b2400;">Google Meet Link:</h3>
-        <p>To join your online session, click the link below:</p>
-        <a 
-          href="${hangoutLink}" 
-          style="display: inline-block; background-color: #f76822; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px;"
-        >
-          Join Google Meet
-        </a>
-
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
-
-        <div style="text-align: center;">
-          <p style="color: #333; font-size: 14px; margin-bottom: 8px;">
-            🌐 <a href="https://steer-u.com/" target="_blank" style="color: #f76822; text-decoration: none;">steer-u.com</a> helps you get
-            <strong>Future Predictions</strong> (2 free questions) & online 
-            <strong>Psychological Counselling</strong> services (free tips & paid online sessions) 
-            — with <strong>confidentiality guaranteed</strong>.
-          </p>
-
-          <p style="font-size: 15px; font-weight: bold; color: #6b2400; margin-top: 15px;">
-            You can write the next episode of your life!<br/>
-            <span style="color: #f76822;">Steer Your Happiness!</span>
-          </p>
-
-          <div style="margin-top: 20px;">
-            <p style="font-size: 13px; color: #555;">Connect with us:</p>
-
-            <a href="https://www.facebook.com/steeruofficial" style="margin: 0 6px;">
-              <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAv0lEQVR42mNgGAU0A9S/w8DgPwMKzQxAcRX+YpD0zAwDA6L///+HyK7BMDIAHhwQHwPSUG4sKsoMyAjgcAQYoJBBkpF2iKqYmJhMzAw5v9/f/9AyMAAAXyIRMT8oJAVxHwNQAAAwPsDqEY5ITyE2gIx8gAEqULUoZAGFBYqzK4wXDEAwMdQNvCIFAoA0oJD8YCE+YDQwkA8ACDd3Sz6CgmNgAAAABJRU5ErkJggg==" width="24" height="24" alt="Facebook" />
-            </a>
-
-            <a href="https://www.instagram.com/steeruofficial" style="margin: 0 6px;">
-              <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAv0lEQVR42mNgGAU0A9S/w8DgPwMKzQxAcRX+YpD0zAwDA6L///+HyK7BMDIAHhwQHwPSUG4sKsoMyAjgcAQYoJBBkpF2iKqYmJhMzAw5v9/f/9AyMAAAXyIRMT8oJAVxHwNQAAAwPsDqEY5ITyE2gIx8gAEqULUoZAGFBYqzK4wXDEAwMdQNvCIFAoA0oJD8YCE+YDQwkA8ACDd3Sz6CgmNgAAAABJRU5ErkJggg==" width="24" height="24" alt="Instagram" />
-            </a>
-
-            <a href="https://www.linkedin.com/company/steeruofficial" style="margin: 0 6px;">
-              <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAv0lEQVR42mNgGAU0A9S/w8DgPwMKzQxAcRX+YpD0zAwDA6L///+HyK7BMDIAHhwQHwPSUG4sKsoMyAjgcAQYoJBBkpF2iKqYmJhMzAw5v9/f/9AyMAAAXyIRMT8oJAVxHwNQAAAwPsDqEY5ITyE2gIx8gAEqULUoZAGFBYqzK4wXDEAwMdQNvCIFAoA0oJD8YCE+YDQwkA8ACDd3Sz6CgmNgAAAABJRU5ErkJggg==" width="24" height="24" alt="LinkedIn" />
-            </a>
-
-            <a href="https://x.com/steeruofficial" style="margin: 0 6px;">
-              <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAv0lEQVR42mNgGAU0A9S/w8DgPwMKzQxAcRX+YpD0zAwDA6L///+HyK7BMDIAHhwQHwPSUG4sKsoMyAjgcAQYoJBBkpF2iKqYmJhMzAw5v9/f/9AyMAAAXyIRMT8oJAVxHwNQAAAwPsDqEY5ITyE2gIx8gAEqULUoZAGFBYqzK4wXDEAwMdQNvCIFAoA0oJD8YCE+YDQwkA8ACDd3Sz6CgmNgAAAABJRU5ErkJggg==" width="24" height="24" alt="Twitter" />
-            </a>
-          </div>
-          <p style="margin-top: 15px; font-size: 13px; color: #777;">
-            📧 <a href="mailto:admin@steer-u.com" style="color: #f76822; text-decoration: none;">admin@steer-u.com</a>
-          </p>
-        </div>
-      </div>
-    </div>
-    `,
-  };
-
-  try {
-    await sgMail.send(msg);
-    console.log(`Doctor notification email sent to: ${doctorEmail}`);
-  } catch (error) {
-    console.error(`Error sending email to ${doctorEmail}:`, error);
-    if (error.response) {
-      console.error(error.response.body);
-    }
-    throw error; // Error ko aage pass karein
-  }
-};
-const sendFeedbackEmail = async ({ issueType, message, contact, timestamp }) => {
-  const msg = {
-    to: process.env.EMAIL_USER, // admin email
-    from: process.env.EMAIL_USER,
-    subject: `New Feedback / Support Request - ${issueType}`,
+  await transporter.sendMail({
+    from: `"Steer-U" <${process.env.EMAIL_USER}>`,
+    to: doctorEmail,
+    subject: `New Booking: ${date} (${slot})`,
     html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6; padding: 20px;">
-        <h2>New Feedback / Support Request</h2>
-        <p><strong>Issue Type:</strong> ${issueType}</p>
-        <p><strong>Contact Info:</strong> ${contact}</p>
-        <p><strong>Message:</strong><br/>${message}</p>
-        <p><strong>Submitted At:</strong> ${new Date(timestamp).toLocaleString()}</p>
-      </div>
-    `,
-  };
+      <h2>New Booking Notification</h2>
 
-  try {
-    await sgMail.send(msg);
-    console.log(`Feedback email sent to admin: ${process.env.EMAIL_USER}`);
-  } catch (error) {
-    console.error("Error sending feedback email:", error);
-    if (error.response) console.error(error.response.body);
-    throw error;
-  }
+      <p><b>Patient Name:</b> ${pseudoName}</p>
+      <p><b>Patient Email:</b> ${patientEmail}</p>
+      <p><b>Mobile:</b> ${mobile || "N/A"}</p>
+
+      <p><b>Date:</b> ${date}</p>
+      <p><b>Time:</b> ${slot}</p>
+
+      <p><b>Google Meet Link:</b></p>
+      <a href="${hangoutLink}">${hangoutLink}</a>
+
+      <br/><br/>
+      <p>— Steer-U Team</p>
+    `,
+  });
+
+  console.log(`✅ Doctor email sent → ${doctorEmail}`);
+};
+
+/**
+ * Send feedback / support email to admin
+ */
+const sendFeedbackEmail = async ({
+  issueType,
+  message,
+  contact,
+  timestamp,
+}) => {
+  await transporter.sendMail({
+    from: `"Steer-U Feedback" <${process.env.EMAIL_USER}>`,
+    to: process.env.EMAIL_USER, // admin mail
+    subject: `New Feedback / Support - ${issueType}`,
+    html: `
+      <h2>New Feedback / Support Request</h2>
+
+      <p><b>Issue Type:</b> ${issueType}</p>
+      <p><b>Contact:</b> ${contact}</p>
+      <p><b>Message:</b><br/>${message}</p>
+      <p><b>Submitted At:</b> ${
+        timestamp
+          ? new Date(timestamp).toLocaleString()
+          : new Date().toLocaleString()
+      }</p>
+    `,
+  });
+
+  console.log("✅ Feedback email sent to admin");
 };
 
 module.exports = {
@@ -227,4 +134,3 @@ module.exports = {
   sendDoctorNotification,
   sendFeedbackEmail,
 };
-

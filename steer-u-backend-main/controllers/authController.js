@@ -42,7 +42,8 @@ const transporter = nodemailer.createTransport({
     socketTimeout: 20000,
 });
 
-const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'no-reply@steer-u';
+const fromAddress = `"Steer-U" <${process.env.EMAIL_USER}>`;
+
 
 // --- OTP store (5 minutes expiry) ---
 const OTP_TTL_MS = 5 * 60 * 1000;
