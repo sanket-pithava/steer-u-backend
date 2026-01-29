@@ -1,0 +1,9 @@
+const express = require('express');
+const router = express.Router();
+const { getSingleCompatibilityAnswer } = require('../controllers/CompatibilityController');
+
+const { jwtProtect } = require('../middleware/jwtMiddleware');
+router.post('/get-single-answer', jwtProtect, getSingleCompatibilityAnswer);
+
+module.exports = router;
+
