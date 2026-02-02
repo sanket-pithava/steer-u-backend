@@ -20,9 +20,6 @@ require('./config/passport');
 // Initialize Express app
 const app = express();
 
-// Trust proxy for IP detection
-app.set('trust proxy', true);
-
 // Middlewares
 app.use(cors());
 app.use(express.json());
@@ -47,7 +44,6 @@ const compatibilityRoutes = require('./routes/CompatibilityRoutes');
 const customQuestionRoutes = require('./routes/customQuestionRoutes');
 const intakeFormRoutes = require('./routes/intakeFormRoutes');
 const supportRoutes = require('./routes/supportRoutes');
-const pricingRoutes = require('./routes/pricingRoutes');
 
 // Test Route
 app.get('/', (req, res) => {
@@ -67,7 +63,6 @@ app.use('/api/compatibility', compatibilityRoutes);
 app.use('/api/custom-questions', customQuestionRoutes);
 app.use('/api/intake-form', intakeFormRoutes);
 app.use('/api/support', supportRoutes);
-app.use('/api/pricing', pricingRoutes);
 
 //  CRITICAL: Mount the new Support Route
 // This connects the path /api/support/ to your supportRoutes file.
