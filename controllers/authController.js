@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const sgMail = require('@sendgrid/mail');
 const { db } = require('../firebaseAdmin'); 
+const { getCountryFromIP } = require('../services/geoService');
 
 const admin = require('firebase-admin'); // Firebase Admin SDK
 
@@ -329,6 +330,10 @@ const socialLoginSuccess = async (req, res) => {
     const name = socialUser.displayName || socialUser.name?.givenName || null;
     const token = generateToken(uid);
 
+    // Capture IP and detect country
+    const ip = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || '127.0.0.1';
+    const country = await getCountryFromIP(ip);
+
     // IMPORTANT: Frontend Origin ko URL Fragment ke liye use karein
     const frontendOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173'; 
     
@@ -345,6 +350,7 @@ const socialLoginSuccess = async (req, res) => {
             name, 
             email, 
             loginMethod: 'google', 
+            country,
             updatedAt: new Date() 
         };
         
