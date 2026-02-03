@@ -1,34 +1,32 @@
 // services/emailService.js
 const nodemailer = require("nodemailer");
 
+const EMAIL_USER = process.env.EMAIL_USER; // steeryourhappiness@gmail.com
+const EMAIL_PASS = process.env.EMAIL_PASS;
+
+if (!EMAIL_USER || !EMAIL_PASS) {
+  console.error("❌ EMAIL ENV NOT SET (EMAIL_USER / EMAIL_PASS)");
+}
+
 /**
- * ENV REQUIRED
- * EMAIL_USER = yourgmail@gmail.com
- * EMAIL_PASS = 16 digit Gmail App Password (no spaces)
+ * Gmail SMTP Transporter
  */
-
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
+  service: "gmail",              // ✅ BEST for Gmail
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: EMAIL_USER,
+    pass: EMAIL_PASS,             // ✅ App Password
   },
-  tls: {
-    rejectUnauthorized: false,
-  },
-
-  // 🧨 DEBUG MODE
-  logger: true,
-  debug: true,
 });
 
-transporter.verify((error, success) => {
+/**
+ * Verify SMTP on server start
+ */
+transporter.verify((error) => {
   if (error) {
     console.error("❌ SMTP VERIFY ERROR:", error);
   } else {
-    console.log("✅ SMTP SERVER READY TO SEND EMAILS");
+    console.log("✅ GMAIL SMTP READY");
   }
 });
 
@@ -43,7 +41,7 @@ const sendPatientConfirmation = async (
   const { pseudoName, doctor, date, slot } = bookingDetails;
 
   await transporter.sendMail({
-    from: `"Steer-U" <${process.env.EMAIL_USER}>`,
+    from: `"Steer-U" <${EMAIL_USER}>`,
     to: patientEmail,
     subject: `Booking Confirmed: ${doctor} on ${date}`,
     html: `
@@ -74,11 +72,10 @@ const sendDoctorNotification = async (
   hangoutLink,
   bookingDetails
 ) => {
-  const { pseudoName, doctor, date, slot, patientEmail, mobile } =
-    bookingDetails;
+  const { pseudoName, date, slot, patientEmail, mobile } = bookingDetails;
 
   await transporter.sendMail({
-    from: `"Steer-U" <${process.env.EMAIL_USER}>`,
+    from: `"Steer-U" <${EMAIL_USER}>`,
     to: doctorEmail,
     subject: `New Booking: ${date} (${slot})`,
     html: `
@@ -103,32 +100,29 @@ const sendDoctorNotification = async (
 };
 
 /**
- * Send feedback / support email to admin
+ * ✅ Send feedback / support email to admin
+ * User email goes in REPLY-TO
  */
 const sendFeedbackEmail = async ({ issueType, message, contact, timestamp }) => {
-  try {
-    const info = await transporter.sendMail({
-      from: `"Steer-U Support" <${fromAddress}>`,   // 👈 System email
-      to: process.env.EMAIL_USER,                   // 👈 ADMIN inbox (steeryourhappiness@gmail.com)
-      replyTo: contact,                             // 👈 User email for reply
+  const info = await transporter.sendMail({
+    from: `"Steer-U Support" <${EMAIL_USER}>`, // ✅ SYSTEM EMAIL
+    to: EMAIL_USER,                            // ✅ ADMIN
+    replyTo: contact,                          // ✅ USER
+    subject: `New Support Request - ${issueType}`,
+    html: `
+      <h2>New Feedback / Support</h2>
+      <p><b>User Contact:</b> ${contact}</p>
+      <p><b>Issue Type:</b> ${issueType}</p>
+      <p><b>Message:</b><br/>${message}</p>
+      <p><b>Submitted At:</b> ${
+        timestamp
+          ? new Date(timestamp).toLocaleString()
+          : new Date().toLocaleString()
+      }</p>
+    `,
+  });
 
-      subject: `New Support Request - ${issueType}`,
-      html: `
-        <h2>New Feedback / Support Request</h2>
-        <p><b>User Email:</b> ${contact}</p>
-        <p><b>Issue Type:</b> ${issueType}</p>
-        <p><b>Message:</b><br/>${message}</p>
-        <p><b>Submitted At:</b> ${
-          timestamp ? new Date(timestamp).toLocaleString() : new Date().toLocaleString()
-        }</p>
-      `,
-    });
-
-    console.log("✅ Feedback email sent:", info.response);
-  } catch (err) {
-    console.error("❌ Email sending failed:", err);
-    throw err;
-  }
+  console.log("✅ Feedback email sent:", info.response);
 };
 
 module.exports = {
