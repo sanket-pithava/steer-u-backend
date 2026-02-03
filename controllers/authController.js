@@ -25,24 +25,18 @@ if (process.env.SENDGRID_API_KEY) {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
 
-// --- SMTP transporter (fallback) — use 587 STARTTLS, NO verify() ---
 const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: Number(process.env.EMAIL_PORT) || 587,
-    secure: false, // STARTTLS on 587
-    auth: process.env.EMAIL_USER && process.env.EMAIL_PASS ? {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    } : undefined,
-    pool: true,
-    maxConnections: 3,
-    maxMessages: 50,
-    connectionTimeout: 10000,
-    greetingTimeout: 7000,
-    socketTimeout: 20000,
+  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  port: Number(process.env.EMAIL_PORT) || 587,
+  secure: false,
+  auth: process.env.EMAIL_USER && process.env.EMAIL_PASS ? {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  } : undefined,
+  pool: true,
 });
-
 const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'no-reply@steer-u';
+
 
 // --- OTP store (5 minutes expiry) ---
 const OTP_TTL_MS = 5 * 60 * 1000;

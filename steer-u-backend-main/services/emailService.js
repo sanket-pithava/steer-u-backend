@@ -19,6 +19,7 @@ const transporter = nodemailer.createTransport({
     rejectUnauthorized: false, // IMPORTANT for VPS / Render
   },
 });
+const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER;
 
 // verify transporter on startup
 transporter.verify((err, success) => {
@@ -102,31 +103,30 @@ const sendDoctorNotification = async (
 /**
  * Send feedback / support email to admin
  */
-const sendFeedbackEmail = async ({
-  issueType,
-  message,
-  contact,
-  timestamp,
-}) => {
-  await transporter.sendMail({
-    from: `"Steer-U Feedback" <${process.env.EMAIL_USER}>`,
-    to: process.env.EMAIL_USER, // admin mail
-    subject: `New Feedback / Support - ${issueType}`,
-    html: `
-      <h2>New Feedback / Support Request</h2>
+const sendFeedbackEmail = async ({ issueType, message, contact, timestamp }) => {
+  try {
+    const info = await transporter.sendMail({
+      from: `"Steer-U Support" <${fromAddress}>`,   // 👈 System email
+      to: process.env.EMAIL_USER,                   // 👈 ADMIN inbox (steeryourhappiness@gmail.com)
+      replyTo: contact,                             // 👈 User email for reply
 
-      <p><b>Issue Type:</b> ${issueType}</p>
-      <p><b>Contact:</b> ${contact}</p>
-      <p><b>Message:</b><br/>${message}</p>
-      <p><b>Submitted At:</b> ${
-        timestamp
-          ? new Date(timestamp).toLocaleString()
-          : new Date().toLocaleString()
-      }</p>
-    `,
-  });
+      subject: `New Support Request - ${issueType}`,
+      html: `
+        <h2>New Feedback / Support Request</h2>
+        <p><b>User Email:</b> ${contact}</p>
+        <p><b>Issue Type:</b> ${issueType}</p>
+        <p><b>Message:</b><br/>${message}</p>
+        <p><b>Submitted At:</b> ${
+          timestamp ? new Date(timestamp).toLocaleString() : new Date().toLocaleString()
+        }</p>
+      `,
+    });
 
-  console.log("✅ Feedback email sent to admin");
+    console.log("✅ Feedback email sent:", info.response);
+  } catch (err) {
+    console.error("❌ Email sending failed:", err);
+    throw err;
+  }
 };
 
 module.exports = {
