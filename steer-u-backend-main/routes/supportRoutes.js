@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { submitFeedback } = require('../controllers/SupportController');
+const { submitFeedback } = require('../controllers/supportController');
 
 router.post('/submit', submitFeedback);
 
