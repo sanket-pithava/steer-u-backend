@@ -1,32 +1,33 @@
-// services/emailService.js
 const nodemailer = require("nodemailer");
 
-const EMAIL_USER = process.env.EMAIL_USER; // steeryourhappiness@gmail.com
-const EMAIL_PASS = process.env.EMAIL_PASS;
-
-if (!EMAIL_USER || !EMAIL_PASS) {
-  console.error("❌ EMAIL ENV NOT SET (EMAIL_USER / EMAIL_PASS)");
-}
-
 /**
- * Gmail SMTP Transporter
+ * ENV REQUIRED
+ * EMAIL_USER = yourgmail@gmail.com
+ * EMAIL_PASS = 16 digit Gmail App Password (no spaces)
  */
+
+// From address define करें
+const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'no-reply@steer-u.com';
+
 const transporter = nodemailer.createTransport({
-  service: "gmail",              // ✅ BEST for Gmail
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // STARTTLS
   auth: {
-    user: EMAIL_USER,
-    pass: EMAIL_PASS,             // ✅ App Password
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false, // IMPORTANT for VPS / Render
   },
 });
 
-/**
- * Verify SMTP on server start
- */
-transporter.verify((error) => {
-  if (error) {
-    console.error("❌ SMTP VERIFY ERROR:", error);
+// verify transporter on startup
+transporter.verify((err, success) => {
+  if (err) {
+    console.error("❌ SMTP Verify Failed:", err);
   } else {
-    console.log("✅ GMAIL SMTP READY");
+    console.log("✅ SMTP Server is ready to send emails");
   }
 });
 
@@ -41,7 +42,7 @@ const sendPatientConfirmation = async (
   const { pseudoName, doctor, date, slot } = bookingDetails;
 
   await transporter.sendMail({
-    from: `"Steer-U" <${EMAIL_USER}>`,
+    from: `"Steer-U" <${fromAddress}>`,
     to: patientEmail,
     subject: `Booking Confirmed: ${doctor} on ${date}`,
     html: `
@@ -72,10 +73,11 @@ const sendDoctorNotification = async (
   hangoutLink,
   bookingDetails
 ) => {
-  const { pseudoName, date, slot, patientEmail, mobile } = bookingDetails;
+  const { pseudoName, doctor, date, slot, patientEmail, mobile } =
+    bookingDetails;
 
   await transporter.sendMail({
-    from: `"Steer-U" <${EMAIL_USER}>`,
+    from: `"Steer-U" <${fromAddress}>`,
     to: doctorEmail,
     subject: `New Booking: ${date} (${slot})`,
     html: `
@@ -100,29 +102,33 @@ const sendDoctorNotification = async (
 };
 
 /**
- * ✅ Send feedback / support email to admin
- * User email goes in REPLY-TO
+ * Send feedback / support email to admin
  */
 const sendFeedbackEmail = async ({ issueType, message, contact, timestamp }) => {
-  const info = await transporter.sendMail({
-    from: `"Steer-U Support" <${EMAIL_USER}>`, // ✅ SYSTEM EMAIL
-    to: EMAIL_USER,                            // ✅ ADMIN
-    replyTo: contact,                          // ✅ USER
-    subject: `New Support Request - ${issueType}`,
-    html: `
-      <h2>New Feedback / Support</h2>
-      <p><b>User Contact:</b> ${contact}</p>
-      <p><b>Issue Type:</b> ${issueType}</p>
-      <p><b>Message:</b><br/>${message}</p>
-      <p><b>Submitted At:</b> ${
-        timestamp
-          ? new Date(timestamp).toLocaleString()
-          : new Date().toLocaleString()
-      }</p>
-    `,
-  });
+  try {
+    const info = await transporter.sendMail({
+      from: `"Steer-U Support" <${fromAddress}>`,
+      to: process.env.EMAIL_USER,                   // 👈 ADMIN inbox (steeryourhappiness@gmail.com)
+      replyTo: contact,                             // 👈 User email for reply
 
-  console.log("✅ Feedback email sent:", info.response);
+      subject: `New Support Request - ${issueType}`,
+      html: `
+        <h2>New Feedback / Support Request</h2>
+        <p><b>User Email:</b> ${contact}</p>
+        <p><b>Issue Type:</b> ${issueType}</p>
+        <p><b>Message:</b><br/>${message}</p>
+        <p><b>Submitted At:</b> ${
+          timestamp ? new Date(timestamp).toLocaleString() : new Date().toLocaleString()
+        }</p>
+      `,
+    });
+
+    console.log("✅ Feedback email sent:", info.response);
+    return true;
+  } catch (err) {
+    console.error("❌ Email sending failed:", err);
+    throw err;
+  }
 };
 
 module.exports = {
