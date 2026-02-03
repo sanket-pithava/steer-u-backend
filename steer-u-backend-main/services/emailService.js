@@ -4,10 +4,13 @@ const nodemailer = require("nodemailer");
  * ENV REQUIRED
  * EMAIL_USER = yourgmail@gmail.com
  * EMAIL_PASS = 16 digit Gmail App Password (no spaces)
+ * EMAIL_FROM = optional (defaults to EMAIL_USER)
  */
 
-// From address define करें
-const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'no-reply@steer-u.com';
+const fromAddress =
+  process.env.EMAIL_FROM ||
+  process.env.EMAIL_USER ||
+  "no-reply@steer-u.com";
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
@@ -18,12 +21,12 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
   tls: {
-    rejectUnauthorized: false, // IMPORTANT for VPS / Render
+    rejectUnauthorized: false, // Needed for VPS / Render
   },
 });
 
-// verify transporter on startup
-transporter.verify((err, success) => {
+// Verify SMTP on startup
+transporter.verify((err) => {
   if (err) {
     console.error("❌ SMTP Verify Failed:", err);
   } else {
@@ -73,8 +76,7 @@ const sendDoctorNotification = async (
   hangoutLink,
   bookingDetails
 ) => {
-  const { pseudoName, doctor, date, slot, patientEmail, mobile } =
-    bookingDetails;
+  const { pseudoName, date, slot, patientEmail, mobile } = bookingDetails;
 
   await transporter.sendMail({
     from: `"Steer-U" <${fromAddress}>`,
@@ -105,30 +107,25 @@ const sendDoctorNotification = async (
  * Send feedback / support email to admin
  */
 const sendFeedbackEmail = async ({ issueType, message, contact, timestamp }) => {
-  try {
-    const info = await transporter.sendMail({
-      from: `"Steer-U Support" <${fromAddress}>`,
-      to: process.env.EMAIL_USER,                   // 👈 ADMIN inbox (steeryourhappiness@gmail.com)
-      replyTo: contact,                             // 👈 User email for reply
+  const info = await transporter.sendMail({
+    from: `"Steer-U Support" <${fromAddress}>`,
+    to: process.env.EMAIL_USER, // Admin inbox
+    replyTo: contact,
+    subject: `New Support Request - ${issueType}`,
+    html: `
+      <h2>New Feedback / Support Request</h2>
+      <p><b>User Contact:</b> ${contact}</p>
+      <p><b>Issue Type:</b> ${issueType}</p>
+      <p><b>Message:</b><br/>${message}</p>
+      <p><b>Submitted At:</b> ${
+        timestamp
+          ? new Date(timestamp).toLocaleString()
+          : new Date().toLocaleString()
+      }</p>
+    `,
+  });
 
-      subject: `New Support Request - ${issueType}`,
-      html: `
-        <h2>New Feedback / Support Request</h2>
-        <p><b>User Email:</b> ${contact}</p>
-        <p><b>Issue Type:</b> ${issueType}</p>
-        <p><b>Message:</b><br/>${message}</p>
-        <p><b>Submitted At:</b> ${
-          timestamp ? new Date(timestamp).toLocaleString() : new Date().toLocaleString()
-        }</p>
-      `,
-    });
-
-    console.log("✅ Feedback email sent:", info.response);
-    return true;
-  } catch (err) {
-    console.error("❌ Email sending failed:", err);
-    throw err;
-  }
+  console.log("✅ Feedback email sent:", info.response);
 };
 
 module.exports = {
