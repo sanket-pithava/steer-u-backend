@@ -10,23 +10,25 @@ const nodemailer = require("nodemailer");
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
-  secure: false, // STARTTLS
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
   tls: {
-    rejectUnauthorized: false, // IMPORTANT for VPS / Render
+    rejectUnauthorized: false,
   },
-});
-const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER;
 
-// verify transporter on startup
-transporter.verify((err, success) => {
-  if (err) {
-    console.error("❌ SMTP Verify Failed:", err);
+  // 🧨 DEBUG MODE
+  logger: true,
+  debug: true,
+});
+
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ SMTP VERIFY ERROR:", error);
   } else {
-    console.log("✅ SMTP Server is ready to send emails");
+    console.log("✅ SMTP SERVER READY TO SEND EMAILS");
   }
 });
 
