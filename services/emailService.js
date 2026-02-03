@@ -197,84 +197,8 @@ const sendDoctorNotification = async (
   }
 };
 
-/**
- * Sends feedback notification email to admin using nodemailer
- */
-const nodemailer = require('nodemailer');
-
-const sendFeedbackNotification = async (feedbackData) => {
-  const { contact, issueType, message, timestamp } = feedbackData;
-
-  // Create nodemailer transporter with Gmail SMTP
-  const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT) || 587,
-    secure: false, // true for 465, false for other ports
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
-  // Format timestamp
-  const formattedTimestamp = new Date(timestamp).toLocaleString('en-IN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Asia/Kolkata'
-  });
-
-  const mailOptions = {
-    from: `"Steer-U System" <${process.env.EMAIL_USER}>`,
-    to: process.env.EMAIL_USER, // steeryourhappiness@gmail.com
-    replyTo: contact, // User's email for easy reply
-    subject: `New Feedback / Support Request - ${issueType}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6; background-color: #f9f9f9; padding: 20px;">
-        <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; padding: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-          
-          <h2 style="color: #f76822; text-align: center;">New Feedback / Support Request</h2>
-          
-          <div style="margin: 20px 0;">
-            <p style="margin: 10px 0;"><strong style="color: #6b2400;">User Contact:</strong> ${contact}</p>
-            <p style="margin: 10px 0;"><strong style="color: #6b2400;">Issue Type:</strong> ${issueType}</p>
-            <p style="margin: 10px 0;"><strong style="color: #6b2400;">Message:</strong><br/>
-              <span style="display: block; margin-top: 8px; padding: 12px; background-color: #f5f5f5; border-left: 3px solid #f76822; border-radius: 4px;">
-                ${message.replace(/\n/g, '<br/>')}
-              </span>
-            </p>
-            <p style="margin: 10px 0;"><strong style="color: #6b2400;">Submitted At:</strong> ${formattedTimestamp}</p>
-          </div>
-
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
-
-          <div style="text-align: center;">
-            <p style="color: #333; font-size: 14px; margin-bottom: 8px;">
-              🌐 <a href="https://steer-u.com/" target="_blank" style="color: #f76822; text-decoration: none;">steer-u.com</a>
-            </p>
-            <p style="font-size: 15px; font-weight: bold; color: #6b2400; margin-top: 15px;">
-              — Steer-U Team
-            </p>
-          </div>
-        </div>
-      </div>
-    `,
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log(`Feedback notification email sent to admin for: ${contact}`);
-  } catch (error) {
-    console.error(`Error sending feedback notification email:`, error);
-    throw error;
-  }
-};
-
 module.exports = {
   sendPatientConfirmation,
   sendDoctorNotification,
-  sendFeedbackNotification,
 };
 

@@ -1,5 +1,4 @@
 const { db } = require('../firebaseAdmin');
-const { sendFeedbackNotification } = require('../services/emailService');
 
 const submitFeedback = async (req, res) => {
     const { issueType, message, timestamp, contact } = req.body;
@@ -12,27 +11,13 @@ const submitFeedback = async (req, res) => {
     }
 
     try {
-        // Save feedback to database
         await db.collection('feedback').add({
             issueType,
             message,
-            contact,
+            contact,  
             timestamp: new Date(timestamp || Date.now()),
             status: 'NEW',
         });
-
-        // Send email notification to admin
-        try {
-            await sendFeedbackNotification({
-                contact,
-                issueType,
-                message,
-                timestamp: timestamp || Date.now()
-            });
-        } catch (emailError) {
-            // Log email error but don't fail the request
-            console.error("Failed to send feedback notification email:", emailError);
-        }
 
         return res.status(200).json({
             success: true,
