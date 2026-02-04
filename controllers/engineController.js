@@ -30,18 +30,18 @@ const getPrediction = async (req, res) => {
             const formattedDob = `${dobParts[2]}-${dobParts[1].padStart(2, '0')}-${dobParts[0].padStart(2, '0')}`;
 
             const requestData = {
-                birth_details: {
+                birth_details: [{
                     date: formattedDob,
                     time: userDetails.timeOfBirth,
                     place: userDetails.placeOfBirth,
                     gender: userDetails.gender || "Male"
-                },
+                }],
                 questions: [questionText]
             };
             console.log("Sending data to SteerU Engine:", JSON.stringify(requestData, null, 2));
 
             const responseFromEngine = await axios.post(
-                steeruApiEndpoint + "/analyze_astro",
+                steeruApiEndpoint + "/analyzeAstro",
                 requestData,
                 {
                     headers: {
