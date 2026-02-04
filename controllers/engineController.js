@@ -21,7 +21,8 @@ const getPrediction = async (req, res) => {
     try {
         const steeruApiKey = process.env.SECRET_STEERU_API_KEY;
         const steeruApiEndpoint = process.env.STEERU_API_ENDPOINT;
-
+        console.log("SteerU API Key:", steeruApiKey);
+        console.log("SteerU API Endpoint:", steeruApiEndpoint);
         // Note: Strict check removed to allow dummy prediction if keys are missing
         if (steeruApiKey && steeruApiEndpoint) {
             const requestData = {
@@ -36,7 +37,7 @@ const getPrediction = async (req, res) => {
             console.log("Sending data to SteerU Engine:", JSON.stringify(requestData, null, 2));
 
             const responseFromEngine = await axios.post(
-                steeruApiEndpoint,
+                steeruApiEndpoint + "/analyzeAstro",
                 requestData,
                 {
                     headers: {
