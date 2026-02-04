@@ -25,9 +25,13 @@ const getPrediction = async (req, res) => {
         console.log("SteerU API Endpoint:", steeruApiEndpoint);
         // Note: Strict check removed to allow dummy prediction if keys are missing
         if (steeruApiKey && steeruApiEndpoint) {
+            // Convert date from DD-MM-YYYY to YYYY-MM-DD
+            const dobParts = userDetails.dob.split('-');
+            const formattedDob = `${dobParts[2]}-${dobParts[1].padStart(2, '0')}-${dobParts[0].padStart(2, '0')}`;
+
             const requestData = {
                 birth_details: {
-                    date: userDetails.dob,
+                    date: formattedDob,
                     time: userDetails.timeOfBirth,
                     place: userDetails.placeOfBirth,
                     gender: userDetails.gender || "Male"
@@ -37,7 +41,7 @@ const getPrediction = async (req, res) => {
             console.log("Sending data to SteerU Engine:", JSON.stringify(requestData, null, 2));
 
             const responseFromEngine = await axios.post(
-                steeruApiEndpoint + "/analyzeAstro",
+                steeruApiEndpoint + "/analyze_astro",
                 requestData,
                 {
                     headers: {
