@@ -42,11 +42,22 @@ const analyzeAstro = async (req, res) => {
         console.log("🔍 SteerU API Endpoint:", steeruApiEndpoint);
         console.log("🔐 SteerU API Key configured:", !!steeruApiKey);
 
+        // Convert date from DD-MM-YYYY to YYYY-MM-DD if needed
+        let formattedDate = birth_details.date;
+        if (birth_details.date && birth_details.date.includes('-')) {
+            const dateParts = birth_details.date.split('-');
+            if (dateParts.length === 3 && dateParts[2].length === 4) {
+                // Format is DD-MM-YYYY, convert to YYYY-MM-DD
+                formattedDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
+                console.log(`📅 Date converted from ${birth_details.date} to ${formattedDate}`);
+            }
+        }
+
         // If API keys are configured, use the real engine
         if (steeruApiKey && steeruApiEndpoint) {
             const requestData = {
                 birth_details: {
-                    date: birth_details.date,
+                    date: formattedDate,
                     time: birth_details.time,
                     place: birth_details.place,
                     gender: birth_details.gender || "Male"
