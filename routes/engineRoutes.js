@@ -1,10 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const { getPrediction } = require('../controllers/engineController');
+const { analyzeAstro, getPrediction } = require('../controllers/engineController');
 const { jwtProtect } = require('../middleware/jwtMiddleware'); // JWT middleware for security
 
-// Yeh route prediction laane ke liye use hoga.
-// jwtProtect middleware yeh sunishchit karega ki sirf logged-in user hi iska istemaal kar sake.
+/**
+ * POST /api/engine/analyze_astro
+ * Analyzes a single birth chart and answers questions
+ * Requires: Bearer token authentication
+ */
+router.post('/analyze_astro', jwtProtect, analyzeAstro);
+
+/**
+ * POST /api/engine/get-prediction
+ * Legacy endpoint - maintained for backwards compatibility
+ */
 router.post('/get-prediction', jwtProtect, getPrediction);
 
 module.exports = router;
