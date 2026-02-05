@@ -51,12 +51,23 @@ const analyzeAstro = async (req, res) => {
             console.log(`📅 Date parts: [${dateParts.join(', ')}]`);
             console.log(`📅 Date part lengths: [${dateParts.map(p => p.length).join(', ')}]`);
             
-            if (dateParts.length === 3 && dateParts[2].length === 4) {
+            // Check if already in YYYY-MM-DD format (first part is 4 digits)
+            if (dateParts.length === 3 && dateParts[0].length === 4) {
+                // Already YYYY-MM-DD format
+                formattedDate = birth_details.date;
+                console.log(`✅ Date already in YYYY-MM-DD format: ${formattedDate}`);
+            } else if (dateParts.length === 3 && dateParts[2].length === 4) {
                 // Format is DD-MM-YYYY, convert to YYYY-MM-DD
-                formattedDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
+                const day = dateParts[0].padStart(2, '0');
+                const month = dateParts[1].padStart(2, '0');
+                const year = dateParts[2];
+                formattedDate = `${year}-${month}-${day}`;
                 console.log(`✅ Date converted from ${birth_details.date} to ${formattedDate}`);
+            } else if (dateParts.length === 3 && dateParts[1].length === 4) {
+                // Format is MM-YYYY-DD or similar, try to detect
+                console.log(`⚠️ Date format ambiguous: ${birth_details.date}, using as-is`);
             } else {
-                console.log(`⚠️ Date format not recognized as DD-MM-YYYY, using as-is`);
+                console.log(`⚠️ Date format not recognized as DD-MM-YYYY, using as-is: ${birth_details.date}`);
             }
         }
 
@@ -171,8 +182,27 @@ const getPrediction = async (req, res) => {
 
         if (steeruApiKey && steeruApiEndpoint) {
             // Convert date from DD-MM-YYYY to YYYY-MM-DD
-            const dobParts = userDetails.dob.split('-');
-            const formattedDob = `${dobParts[2]}-${dobParts[1].padStart(2, '0')}-${dobParts[0].padStart(2, '0')}`;
+            let formattedDob = userDetails.dob;
+            console.log(`📅 Original DOB received: ${userDetails.dob}`);
+            
+            if (userDetails.dob && userDetails.dob.includes('-')) {
+                const dobParts = userDetails.dob.split('-');
+                console.log(`📅 DOB parts: [${dobParts.join(', ')}]`);
+                
+                // Check if already in YYYY-MM-DD format (first part is 4 digits)
+                if (dobParts.length === 3 && dobParts[0].length === 4) {
+                    // Already YYYY-MM-DD format
+                    formattedDob = userDetails.dob;
+                    console.log(`✅ DOB already in YYYY-MM-DD format: ${formattedDob}`);
+                } else if (dobParts.length === 3 && dobParts[2].length === 4) {
+                    // Format is DD-MM-YYYY, convert to YYYY-MM-DD
+                    const day = dobParts[0].padStart(2, '0');
+                    const month = dobParts[1].padStart(2, '0');
+                    const year = dobParts[2];
+                    formattedDob = `${year}-${month}-${day}`;
+                    console.log(`✅ DOB converted from ${userDetails.dob} to ${formattedDob}`);
+                }
+            }
 
             const requestData = {
                 birth_details: {
