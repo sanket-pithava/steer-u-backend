@@ -44,12 +44,19 @@ const analyzeAstro = async (req, res) => {
 
         // Convert date from DD-MM-YYYY to YYYY-MM-DD if needed
         let formattedDate = birth_details.date;
+        console.log(`📅 Original date received: ${birth_details.date}`);
+        
         if (birth_details.date && birth_details.date.includes('-')) {
             const dateParts = birth_details.date.split('-');
+            console.log(`📅 Date parts: [${dateParts.join(', ')}]`);
+            console.log(`📅 Date part lengths: [${dateParts.map(p => p.length).join(', ')}]`);
+            
             if (dateParts.length === 3 && dateParts[2].length === 4) {
                 // Format is DD-MM-YYYY, convert to YYYY-MM-DD
                 formattedDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
-                console.log(`📅 Date converted from ${birth_details.date} to ${formattedDate}`);
+                console.log(`✅ Date converted from ${birth_details.date} to ${formattedDate}`);
+            } else {
+                console.log(`⚠️ Date format not recognized as DD-MM-YYYY, using as-is`);
             }
         }
 
